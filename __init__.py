@@ -5,16 +5,28 @@ Conway's Life, optimized for performance.
 
 ROWS = 8
 COLS = 32
+# "Live" cell colors to randomly choose from
 COLORS = [
+    (0x00, 0xFF, 0x00),
+    (0x00, 0x00, 0xFF),
+    (0xFF, 0x00, 0x00),
+    (0xB8, 0xE9, 0x86),
+    (0xF8, 0xB7, 0x00),
+    (0x50, 0xE3, 0xC2),
+    (0xFE, 0x13, 0xD4),
+    (0x90, 0x13, 0xFE),
+]
+# Fade-out color palette (reverse order)
+palette = [
+    (52, 41, 51),
+    (68, 50, 58),
+    (83, 60, 63),
+    (96, 71, 67),
+    (106, 84, 71),
+    (114, 98, 77),
+    (118, 113, 87),
+    (119, 128, 100),
     (250, 250, 110),
-    (255, 216, 81),
-    (255, 180, 70),
-    (255, 142, 76),
-    (255, 101, 92),
-    (255, 58, 114),
-    (237, 1, 137),
-    (197, 0, 160),
-    (138, 27, 180),
 ]
 BOARD_DENSITY = 0.3  # proportion of live cells when creating a new board
 MAX_ROUNDS = 200  # reset if the same board runs for too long
@@ -82,7 +94,7 @@ def print_board(board):
         print(board_str[start : start + COLS + 2])
 
 
-def show_board(board, color):
+def show_board(board):
     """Put the board on the display."""
 
     rgb.disablecomp()
@@ -92,7 +104,7 @@ def show_board(board, color):
     for r in range(ROWS):
         for c in range(COLS):
             if board[pos]:
-                rgb.pixel(COLORS[board[pos] - 1], (c, r))
+                rgb.pixel(palette[board[pos] - 1], (c, r))
             pos += 1
         pos += 2
 
@@ -100,7 +112,7 @@ def show_board(board, color):
 
 
 if not hasattr(sys, "mpycore"):
-    show_board = lambda board, color: print_board(board)
+    show_board = lambda board: print_board(board)
 
 
 def randomize_board(board, density=0.3):
@@ -155,20 +167,18 @@ def run_game():
     board3 = bytearray(CELL_COUNT)
     round = 0
 
-    color = COLORS[0]
-
     # improve randomness (taken from Simon Says)
     seed(int(1000000 * time.time()) % 1000000)
 
     def do_reset():
-        global reset_flag
-        nonlocal color, board, next_board, board2, board3, round
+        global reset_flag, COLORS, palette
+        nonlocal board, next_board, board2, board3, round
 
         randomize_board(board, BOARD_DENSITY)
         next_board = bytearray(CELL_COUNT)
         board2 = bytearray(CELL_COUNT)
         board3 = bytearray(CELL_COUNT)
-        color = choice(COLORS)
+        palette[8] = choice(COLORS)
         round = 0
         reset_flag = False
 
@@ -179,7 +189,7 @@ def run_game():
         if reset_flag:
             do_reset()
 
-        show_board(board, color)
+        show_board(board)
 
         t1 = time.ticks_ms()
         evolve_board(board, next_board)
