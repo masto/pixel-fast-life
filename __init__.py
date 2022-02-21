@@ -6,14 +6,15 @@ Conway's Life, optimized for performance.
 ROWS = 8
 COLS = 32
 COLORS = [
-    (0x00, 0xFF, 0x00),
-    (0x00, 0x00, 0xFF),
-    (0xFF, 0x00, 0x00),
-    (0xB8, 0xE9, 0x86),
-    (0xF8, 0xB7, 0x00),
-    (0x50, 0xE3, 0xC2),
-    (0xFE, 0x13, 0xD4),
-    (0x90, 0x13, 0xFE),
+    (250, 250, 110),
+    (255, 216, 81),
+    (255, 180, 70),
+    (255, 142, 76),
+    (255, 101, 92),
+    (255, 58, 114),
+    (237, 1, 137),
+    (197, 0, 160),
+    (138, 27, 180),
 ]
 BOARD_DENSITY = 0.3  # proportion of live cells when creating a new board
 MAX_ROUNDS = 200  # reset if the same board runs for too long
@@ -62,7 +63,20 @@ OFFSET = COLS + 3
 def print_board(board):
     """Print the board to the console."""
 
-    board_str = str(bytes(board).replace(b"\0", b" ").replace(b"\1", b"#"), "ascii")
+    board_str = str(
+        bytes(board)
+        .replace(b"\x00", b" ")
+        .replace(b"\x01", b"1")
+        .replace(b"\x02", b"2")
+        .replace(b"\x03", b"3")
+        .replace(b"\x04", b"4")
+        .replace(b"\x05", b"5")
+        .replace(b"\x06", b"6")
+        .replace(b"\x07", b"7")
+        .replace(b"\x08", b"8")
+        .replace(b"\x09", b"9"),
+        "ascii",
+    )
     for y in range(ROWS + 2):
         start = y * (COLS + 2)
         print(board_str[start : start + COLS + 2])
@@ -78,7 +92,7 @@ def show_board(board, color):
     for r in range(ROWS):
         for c in range(COLS):
             if board[pos]:
-                rgb.pixel(color, (c, r))
+                rgb.pixel(COLORS[board[pos] - 1], (c, r))
             pos += 1
         pos += 2
 
@@ -97,7 +111,7 @@ def randomize_board(board, density=0.3):
     """
 
     for i in range(COLS * ROWS):
-        board[OFFSET + i + 2 * int(i / COLS)] = 1 if random() <= density else 0
+        board[OFFSET + i + 2 * int(i / COLS)] = 9 if random() <= density else 0
 
 
 def evolve_board(board_in, board_out):
@@ -107,21 +121,21 @@ def evolve_board(board_in, board_out):
     for r in range(ROWS):
         for c in range(COLS):
             count = (
-                board_in[pos - COLS - 3]
-                + board_in[pos - COLS - 2]
-                + board_in[pos - COLS - 1]
-                + board_in[pos - 1]
-                + board_in[pos + 1]
-                + board_in[pos + COLS + 1]
-                + board_in[pos + COLS + 2]
-                + board_in[pos + COLS + 3]
+                (board_in[pos - COLS - 3] == 9)
+                + (board_in[pos - COLS - 2] == 9)
+                + (board_in[pos - COLS - 1] == 9)
+                + (board_in[pos - 1] == 9)
+                + (board_in[pos + 1] == 9)
+                + (board_in[pos + COLS + 1] == 9)
+                + (board_in[pos + COLS + 2] == 9)
+                + (board_in[pos + COLS + 3] == 9)
             )
-            if board_in[pos]:
+            if board_in[pos] == 9:
                 # Any live cell with two or three live neighbors survives.
-                board_out[pos] = 1 if count in {2, 3} else 0
+                board_out[pos] = 9 if count in {2, 3} else max(0, board_in[pos] - 1)
             else:
                 # Any dead cell with three live neighbors becomes a live cell.
-                board_out[pos] = 1 if count == 3 else 0
+                board_out[pos] = 9 if count == 3 else max(0, board_in[pos] - 1)
             pos += 1
         pos += 2
 
