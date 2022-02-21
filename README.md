@@ -6,3 +6,4 @@ but written from scratch to teach myself some Python.
 
 * Press Up/Down to change the speed
 * Press A to reset to a new random board
+* Press Left to toggle the fade effect
