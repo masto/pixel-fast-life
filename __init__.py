@@ -16,7 +16,8 @@ COLORS = [
     (0xFE, 0x13, 0xD4),
     (0x90, 0x13, 0xFE),
 ]
-# Fade-out color palette (reverse order)
+# Fade-out color palette (reverse order). Must contain 9 elements.
+# https://colordesigner.io/gradient-generator is a good place to make one.
 palette = [
     (52, 41, 51),
     (68, 50, 58),
@@ -26,18 +27,19 @@ palette = [
     (114, 98, 77),
     (118, 113, 87),
     (119, 128, 100),
-    (250, 250, 110),
+    (250, 250, 110),  # Gets replaced with one of the live colors above
 ]
 BOARD_DENSITY = 0.3  # proportion of live cells when creating a new board
 MAX_ROUNDS = 200  # reset if the same board runs for too long
 PRINT_TIMING = False
-DEFAULT_SETTINGS = {"delay_ms": 250}
+DEFAULT_SETTINGS = {"delay_ms": 250, "mode": "fade_out"}
 
 from random import choice, random, seed
 import sys
 import time
 
 APP_NAME = "fast_life"
+settings = DEFAULT_SETTINGS.copy()
 
 if hasattr(sys, "mpycore"):
     import buttons
@@ -46,7 +48,7 @@ if hasattr(sys, "mpycore"):
     import valuestore
     import virtualtimers
 
-    settings = valuestore.load(APP_NAME, "settings") or DEFAULT_SETTINGS
+    settings.update(valuestore.load(APP_NAME, "settings") or {})
 else:
     from unittest.mock import Mock
 
@@ -63,8 +65,6 @@ else:
     virtualtimers.new = vtimers_new
     time.ticks_ms = lambda: time.monotonic() * 1000
     time.ticks_diff = lambda a, b: a - b
-
-    settings = DEFAULT_SETTINGS
 
 # The actual board is inset in a larger board, leaving one cell of padding
 # around each edge.
@@ -104,7 +104,13 @@ def show_board(board):
     for r in range(ROWS):
         for c in range(COLS):
             if board[pos]:
-                rgb.pixel(palette[board[pos] - 1], (c, r))
+                if settings["mode"] == "fade_out":
+                    # Fade effect after cells die
+                    rgb.pixel(palette[board[pos] - 1], (c, r))
+                else:
+                    # Only show cells that are alive
+                    if board[pos] == 9:
+                        rgb.pixel(palette[8], (c, r))
             pos += 1
         pos += 2
 
@@ -245,9 +251,16 @@ def run_game():
                 time.sleep(0.1)
                 rgb.background((0, 0, 0))
 
+    def button_left(pressed):
+        global settings
+        if pressed:
+            settings["mode"] = "live" if settings["mode"] == "fade_out" else "fade_out"
+            valuestore.save(APP_NAME, "settings", settings)
+
     buttons.register(defines.BTN_A, button_a)
     buttons.register(defines.BTN_UP, button_up)
     buttons.register(defines.BTN_DOWN, button_down)
+    buttons.register(defines.BTN_LEFT, button_left)
 
     # Use 25 for period, because 10 interferes with button detection
     virtualtimers.begin(25)
